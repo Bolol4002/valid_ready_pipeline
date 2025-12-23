@@ -1,6 +1,6 @@
 // Single-stage valid/ready pipeline
 // Parameterizable data width
-module valid_ready_pipeline #(
+module valid_ready#(
     parameter int WIDTH = 8
 ) (
     input  logic                 clk,

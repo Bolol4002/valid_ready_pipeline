@@ -3,11 +3,11 @@ TOPLEVEL_LANG = verilog
 # Simulator
 SIM = verilator
 
-# Location of RTL
-VERILOG_SOURCES += $(PWD)/../../src/valid_ready_single.sv
+# Location of RTL (file is inside src/valid_ready_single/)
+VERILOG_SOURCES += $(PWD)/../src/valid_ready.sv
 
-# Top module name
-TOPLEVEL = valid_ready_single
+# Top module name (module defined in the SV file is `valid_ready_pipeline`)
+TOPLEVEL = valid_ready
 
 # Python testbench (no .py)
 MODULE = test_valid_ready
