@@ -1,1 +1,3 @@
-cocotb>=2.6
+
+# Pin to latest available 2.x release on PyPI
+cocotb==2.0.1
