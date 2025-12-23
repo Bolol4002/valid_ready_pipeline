@@ -1,93 +1,228 @@
+
+
 # valid_ready_pipeline
 
-This repository contains a minimal, self-contained example of a single-stage valid/ready pipeline implemented in SystemVerilog along with a cocotb-based testbench.
+This repository is a beginner-friendly, self-contained example of a single-stage valid/ready pipeline in SystemVerilog with a cocotb testbench. It explains the RTL, the handshake behavior, and how the cocotb tests exercise the design.
 
-Audience: this document teaches the valid/ready handshake, shows a simple RTL implementation, and gives step-by-step instructions to run the cocotb tests from scratch.
+Files
+- `src/valid_ready_single/valid_ready_single.sv`: the SystemVerilog single-stage pipeline DUT.
+- `tb/test_valid_ready.py`: cocotb testbench that verifies functionality and back-pressure behavior.
+- `tb/Makefile`: run cocotb tests with a simulator (`verilator` in this project).
+- `requirements.txt`: Python dependencies for the venv (cocotb pinned to a working PyPI version).
 
-Contents
-- `src/valid_ready.sv`: SystemVerilog implementation of a single-stage valid/ready pipeline.
-- `tb/test_valid_ready.py`: cocotb testbench that verifies functional and flow-control behavior.
-- `tb/Makefile`: Makefile to run cocotb tests with a simulator (Icarus by default).
-- `requirements.txt`: Python dependencies for running the tests.
+Overview — valid/ready handshake
 
-Concepts: valid/ready handshake
+The valid/ready handshake is a simple flow-control protocol used in hardware streaming interfaces:
 
-The valid/ready handshake is a popular streaming interface used to transfer data between producers and consumers while allowing either side to stall the transfer without losing data:
+- `valid` (from producer): I have valid data on `data`.
+- `ready` (from consumer): I can accept data now.
+- A transfer happens when both `valid` and `ready` are high on the same clock edge.
 
-- `valid`: asserted by the sender when data is available.
-- `ready`: asserted by the receiver when it can accept data.
-- A transfer occurs when both `valid` and `ready` are high on the same clock edge. The sender may keep `valid` asserted until the transfer completes; the receiver may deassert `ready` to apply back-pressure.
+This design implements a single pipeline stage that can hold one data word. It supports bubble-through: when the stage's data is accepted by downstream, the stage can accept new input in the same cycle.
 
-Single-stage pipeline behavior
+How the SystemVerilog DUT works (walkthrough)
 
-This example implements a single pipeline stage. The stage holds one item of data and exposes the usual streaming interface on both sides:
+The DUT is in `src/valid_ready_single/valid_ready_single.sv`. Here is the full module followed by an explanation.
 
-- Inputs: `in_valid`, `in_data`, `clk`, `rst_n`, `out_ready` (downstream back-pressure).
-- Outputs: `in_ready`, `out_valid`, `out_data`.
+```verilog
+// Single-stage valid/ready pipeline
+// Parameterizable data width
+module valid_ready_pipeline #(
+  parameter int WIDTH = 8
+) (
+  input  logic                 clk,
+  input  logic                 rst_n,
 
-The stage accepts new input when it is empty or when the current data will be transferred to downstream in the same cycle (i.e., when `out_ready` is true). This lets producers and consumers bubble through the stage efficiently.
+  // Input (producer) side
+  input  logic                 in_valid,
+  input  logic [WIDTH-1:0]     in_data,
+  output logic                 in_ready,
 
-Quickstart (Ubuntu / Debian-like)
+  // Output (consumer) side
+  output logic                 out_valid,
+  output logic [WIDTH-1:0]     out_data,
+  input  logic                 out_ready
+);
 
-Prerequisites:
+  logic stage_valid;
+  logic [WIDTH-1:0] stage_data;
 
-1. System packages (install a simulator and Python):
+  // When stage is empty we can accept input. If stage is full
+  // but the downstream is ready to accept the data this cycle,
+  // we can accept new input in the same cycle (bubble-through).
+  assign in_ready  = !stage_valid || (out_ready && stage_valid);
+  assign out_valid = stage_valid;
+  assign out_data  = stage_data;
 
-```bash
-sudo apt update
-sudo apt install -y verilator iverilog make python3 python3-pip
+  always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      stage_valid <= 1'b0;
+      stage_data  <= '0;
+    end else begin
+      // Capture input when valid and ready
+      if (in_valid && in_ready) begin
+        stage_data  <= in_data;
+        stage_valid <= 1'b1;
+      end
+
+      // If downstream accepts data, clear stage_valid
+      // (this makes room for the next input - possibly same cycle)
+      if (out_ready && stage_valid && !(in_valid && in_ready && stage_valid)) begin
+        // If stage was valid and we transfer to downstream, and
+        // we did not simultaneously capture new data above, clear
+        stage_valid <= 1'b0;
+      end
+    end
+  end
+
+endmodule
 ```
 
-2. Python dependencies:
+Signal behavior and why this works
+- `stage_valid`: indicates whether the stage currently holds data.
+- `stage_data`: the registered data stored in the stage.
+- `out_valid` simply reflects `stage_valid` — downstream sees valid when stage holds data.
+- `in_ready` is true when the stage is empty (`!stage_valid`) so it can accept data. It is also true when the stage is full but downstream is ready (`out_ready && stage_valid`), allowing bubble-through (the stage will forward the data to downstream and accept new input in the same cycle).
 
-```bash
-python3 -m pip install -r requirements.txt
+Important detail: capturing new input and clearing the stage are written so a transfer to downstream can happen in the same cycle as accepting new upstream data. This avoids deadlocks and allows the pipeline to move data efficiently.
+
+How the cocotb testbench exercises the DUT
+
+The cocotb test file is `tb/test_valid_ready.py`. Here is the testbench (full file):
+
+```python
+import random
+import cocotb
+from cocotb.clock import Clock
+from cocotb.triggers import RisingEdge, Timer
+
+
+async def reset_dut(dut):
+  dut.rst_n.value = 0
+  await Timer(100, units='ns')
+  dut.rst_n.value = 1
+  await RisingEdge(dut.clk)
+
+
+@cocotb.test()
+async def test_simple_flow(dut):
+  """Producer sends values while consumer is always ready."""
+  cocotb.start_soon(Clock(dut.clk, 10, units='ns').start())
+  await reset_dut(dut)
+
+  dut.out_ready.value = 1
+  dut.in_valid.value = 0
+
+  data_seq = [1, 2, 3, 4, 255]
+  received = []
+
+  async def send_values():
+    for v in data_seq:
+      # drive valid until accepted
+      dut.in_data.value = v
+      dut.in_valid.value = 1
+      while True:
+        await RisingEdge(dut.clk)
+        if int(dut.in_ready.value) == 1 and int(dut.in_valid.value) == 1:
+          # accepted this cycle
+          dut.in_valid.value = 0
+          break
+
+  async def recv_values():
+    while len(received) < len(data_seq):
+      await RisingEdge(dut.clk)
+      if int(dut.out_valid.value) == 1 and int(dut.out_ready.value) == 1:
+        received.append(int(dut.out_data.value))
+
+  send_task = cocotb.start_soon(send_values())
+  recv_task = cocotb.start_soon(recv_values())
+  await send_task
+  await recv_task
+
+  assert received == data_seq
+
+
+@cocotb.test()
+async def test_random_backpressure(dut):
+  """Randomly apply back-pressure and ensure ordering is preserved."""
+  cocotb.start_soon(Clock(dut.clk, 10, units='ns').start())
+  await reset_dut(dut)
+
+  dut.in_valid.value = 0
+  dut.out_ready.value = 0
+
+  data_seq = list(range(1, 21))
+  received = []
+
+  async def driver():
+    for v in data_seq:
+      dut.in_data.value = v
+      dut.in_valid.value = 1
+      # hold until accepted
+      while True:
+        await RisingEdge(dut.clk)
+        if int(dut.in_ready.value) == 1 and int(dut.in_valid.value) == 1:
+          dut.in_valid.value = 0
+          break
+
+  async def consumer():
+    while len(received) < len(data_seq):
+      # randomly toggle ready
+      dut.out_ready.value = random.choice([0, 1])
+      await RisingEdge(dut.clk)
+      if int(dut.out_valid.value) == 1 and int(dut.out_ready.value) == 1:
+        received.append(int(dut.out_data.value))
+
+  drv = cocotb.start_soon(driver())
+  cons = cocotb.start_soon(consumer())
+  await drv
+  await cons
+
+  assert received == data_seq
+
 ```
 
-Run the cocotb test (from repository root):
+Testbench explanation (beginner friendly)
+- The testbench creates a clock with `Clock(dut.clk, 10, units='ns')` and applies reset via `reset_dut`.
+- `test_simple_flow` drives a sequence of values, holding `in_valid` until `in_ready` becomes true. The test sets `out_ready=1` so downstream never back-pressures; the test then checks the sequence received on `out_data`.
+- `test_random_backpressure` randomly toggles `out_ready` to simulate downstream stalling. The driver waits for `in_ready` before moving to the next value. The test ensures ordering is preserved.
+
+How the test maps to the DUT
+- When `in_valid` and `in_ready` are both true on a rising clock, the DUT captures `in_data` into `stage_data` and sets `stage_valid`.
+- When `out_ready` and `out_valid` are both true on a rising clock, the downstream accepts the stage's data; the DUT clears `stage_valid` unless a new value was captured in the same cycle.
+
+Run the tests (Verilator + venv)
+
+1) Create and activate Python venv and install dependencies (from project root):
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip setuptools wheel
+pip install -r requirements.txt
+```
+
+2) Ensure `verilator` is installed and available (we recommend a recent Verilator; check with):
+
+```bash
+verilator --version
+```
+
+3) Run the tests from the `tb` directory (venv activated):
 
 ```bash
 cd tb
-make SIM=icarus
+make SIM=verilator
 ```
 
-The Makefile uses `cocotb-config --makefiles` to include the standard cocotb simulation Makefile. You can switch `SIM` to another supported simulator (like `verilator`) if you have it installed and configured.
+If `make` fails, capture the log and share it. Common fixes:
+- Ensure the venv is active so `cocotb-config` is found: `source .venv/bin/activate` from repo root before `cd tb`.
+- Verify `tb/Makefile` points at the correct RTL path: `VERILOG_SOURCES` should include `../src/valid_ready_single/valid_ready_single.sv` and `TOPLEVEL` should be `valid_ready_pipeline`.
 
-Files and what's inside
-
-- `src/valid_ready.sv` — a compact, synthesizable single-stage pipeline. The module parameters and ports are documented inside the file.
-- `tb/test_valid_ready.py` — cocotb tests:
-  - `test_simple_flow`: verifies basic transfer when consumer is always ready.
-  - `test_random_backpressure`: randomly applies back-pressure to validate flow-control correctness and ordering.
-
-Design notes and rationale
-
-- The stage stores data in a register and uses a `stage_valid` flag to indicate presence of data.
-- `in_ready` is asserted when the stage is empty or when the stage will be freed by a simultaneous transfer to downstream (when `out_ready` and `stage_valid` are true).
-
-Extending the example
-
-- Add width, depth, or multi-stage pipelines by chaining instances of the provided module or converting into FIFO-like structures.
-- Replace the Makefile SIM with `verilator` or another simulator in environments where Icarus is not desired.
+Learning tips
+- Step through the RTL with a waveform viewer (the Makefile enables tracing when supported). Use the VCD/FTZ/GLIF produced by Verilator to inspect `stage_valid`, `in_valid`, `in_ready`, `out_ready` and `stage_data`.
+- Modify the DUT to add `WIDTH` changes or a second stage to see how bubble-through and back-pressure interact.
 
 If you want, I can also:
-- Run or adapt the tests to target `verilator` instead of Icarus.
-- Add a small harness showing multiple pipelined stages.
-# Valid Ready Pipeline
-2025-12-23
-
-## What is a valid ready pipeline mean??
-
-valid - i have the data
-ready - i can accept the data
-Transfer only happens when both are set bits
-
-valid ready pipeline solves backpressure like 
-- what if stage 2 stalls?
-- what if downstream can't accept data?
-- What if upstream produces faster than downstream consumes?
-
-
-so basically if iam full i can only accept the data if i can pass my data to someone else and someone can only accept the data if they dont have any data stored within them.
-
----
+- Add a multi-stage example and tests, or
+- Add a GitHub Actions workflow to run the cocotb tests on each push.
