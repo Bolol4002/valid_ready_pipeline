@@ -13,30 +13,19 @@ module valid_ready (
     input  wire ready_out
 );
 
-    // --------------------------------------------------
-    // INTERNAL STATE
-    // --------------------------------------------------
     // data_reg holds the actual data
     // valid_reg tells whether data_reg currently holds valid data
     reg data_reg;
     reg valid_reg;
 
-    // --------------------------------------------------
-    // COMBINATIONAL LOGIC (handshake rules)
-    // --------------------------------------------------
-
-    // We can accept new data if:
-    // 1) We are empty, OR
-    // 2) The downstream is ready to accept our current data
+    // We can acccept the data if we are empty or the next module is ready to accept 
+    // our curr data(combinational)
     assign ready_in = ~valid_reg || ready_out;
 
     // Output signals reflect internal state
     assign valid_out = valid_reg;
     assign data_out  = data_reg;
 
-    // --------------------------------------------------
-    // SEQUENTIAL LOGIC (state updates)
-    // --------------------------------------------------
     always @(posedge clk or posedge rst) begin
         if (rst) begin
             // Reset clears the pipeline stage
