@@ -1,23 +1,19 @@
-module valid_ready (
-    input  wire clk,
-    input  wire rst,
-
-    // Input (producer side)
-    input  wire valid_in,
-    input  wire data_in,
-    output wire ready_in,
-
-    // Output (consumer side)
-    output wire valid_out,
-    output wire data_out,
-    input  wire ready_out
+module valid_ready #(
+    parameter WIDTH = 8
+) (
+    input  wire             clk,
+    input  wire             rst,
+    input  wire             valid_in,
+    input  wire [WIDTH-1:0] data_in,
+    output wire             ready_in,
+    output wire             valid_out,
+    output wire [WIDTH-1:0] data_out,
+    input  wire             ready_out
 );
-
     // data_reg holds the actual data
     // valid_reg tells whether data_reg currently holds valid data
-    reg data_reg;
-    reg valid_reg;
-
+    reg [WIDTH-1:0] data_reg;
+    reg             valid_reg;
     // We can acccept the data if we are empty or the next module is ready to accept 
     // our curr data(combinational)
     assign ready_in = ~valid_reg || ready_out;
