@@ -1,88 +1,89 @@
-import random
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import RisingEdge, Timer
+from cocotb.triggers import RisingEdge
+import random
 
 
 async def reset_dut(dut):
-    dut.rst_n.value = 0
-    await Timer(100, units='ns')
-    dut.rst_n.value = 1
+    dut.rst.value = 1
+    dut.valid_in.value = 0
+    dut.data_in.value = 0
+    dut.ready_out.value = 0
+
+    await RisingEdge(dut.clk)
+    await RisingEdge(dut.clk)
+
+    dut.rst.value = 0
     await RisingEdge(dut.clk)
 
 
 @cocotb.test()
 async def test_simple_flow(dut):
-    """Producer sends values while consumer is always ready."""
-    cocotb.start_soon(Clock(dut.clk, 10, units='ns').start())
+    """
+    Producer sends data continuously.
+    Consumer always ready.
+    """
+    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
     await reset_dut(dut)
 
-    dut.out_ready.value = 1
-    dut.in_valid.value = 0
+    dut.ready_out.value = 1  # consumer always ready
 
-    data_seq = [1, 2, 3, 4, 255]
+    sent = [1, 0, 1, 1, 0]
     received = []
 
-    async def send_values():
-        for v in data_seq:
-            # drive valid until accepted
-            dut.in_data.value = v
-            dut.in_valid.value = 1
+    async def producer():
+        for bit in sent:
+            dut.data_in.value = bit
+            dut.valid_in.value = 1
+
+            # Wait until accepted
             while True:
                 await RisingEdge(dut.clk)
-                if int(dut.in_ready.value) == 1 and int(dut.in_valid.value) == 1:
-                    # accepted this cycle
-                    dut.in_valid.value = 0
+                if dut.ready_in.value == 1:
+                    dut.valid_in.value = 0
                     break
 
-    async def recv_values():
-        while len(received) < len(data_seq):
+    async def consumer():
+        while len(received) < len(sent):
             await RisingEdge(dut.clk)
-            if int(dut.out_valid.value) == 1 and int(dut.out_ready.value) == 1:
-                received.append(int(dut.out_data.value))
+            if dut.valid_out.value == 1 and dut.ready_out.value == 1:
+                received.append(int(dut.data_out.value))
 
-    send_task = cocotb.start_soon(send_values())
-    recv_task = cocotb.start_soon(recv_values())
-    await send_task
-    await recv_task
+    await cocotb.start_soon(producer())
+    await cocotb.start_soon(consumer())
 
-    assert received == data_seq
+    assert received == sent, f"Expected {sent}, got {received}"
 
 
 @cocotb.test()
 async def test_random_backpressure(dut):
-    """Randomly apply back-pressure and ensure ordering is preserved."""
-    cocotb.start_soon(Clock(dut.clk, 10, units='ns').start())
+    """
+    Random ready signal to test stalling behavior.
+    """
+    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
     await reset_dut(dut)
 
-    dut.in_valid.value = 0
-    dut.out_ready.value = 0
-
-    data_seq = list(range(1, 21))
+    sent = [random.randint(0, 1) for _ in range(20)]
     received = []
 
-    async def driver():
-        for v in data_seq:
-            dut.in_data.value = v
-            dut.in_valid.value = 1
-            # hold until accepted
+    async def producer():
+        for bit in sent:
+            dut.data_in.value = bit
+            dut.valid_in.value = 1
             while True:
                 await RisingEdge(dut.clk)
-                if int(dut.in_ready.value) == 1 and int(dut.in_valid.value) == 1:
-                    dut.in_valid.value = 0
+                if dut.ready_in.value == 1:
+                    dut.valid_in.value = 0
                     break
 
     async def consumer():
-        while len(received) < len(data_seq):
-            # randomly toggle ready
-            dut.out_ready.value = random.choice([0, 1])
+        while len(received) < len(sent):
+            dut.ready_out.value = random.choice([0, 1])
             await RisingEdge(dut.clk)
-            if int(dut.out_valid.value) == 1 and int(dut.out_ready.value) == 1:
-                received.append(int(dut.out_data.value))
+            if dut.valid_out.value == 1 and dut.ready_out.value == 1:
+                received.append(int(dut.data_out.value))
 
-    drv = cocotb.start_soon(driver())
-    cons = cocotb.start_soon(consumer())
-    await drv
-    await cons
+    await cocotb.start_soon(producer())
+    await cocotb.start_soon(consumer())
 
-    assert received == data_seq
+    assert received == sent, f"Mismatch: {received} != {sent}"
