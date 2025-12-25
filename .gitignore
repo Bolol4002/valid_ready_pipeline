@@ -1,0 +1,6 @@
+# Simulation artifacts
+*.vcd
+*.vvp
+*.fst
+*.log
+sim_build/
