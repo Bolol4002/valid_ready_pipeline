@@ -2,7 +2,6 @@
 
 # valid_ready_pipeline
 
-This repository is a beginner-friendly, self-contained example of a single-stage valid/ready pipeline in SystemVerilog with a cocotb testbench. It explains the RTL, the handshake behavior, and how the cocotb tests exercise the design.
 
 Files
 - `src/valid_ready_single/valid_ready_single.sv`: the SystemVerilog single-stage pipeline DUT.
