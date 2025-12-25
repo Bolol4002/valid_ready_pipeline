@@ -1,22 +1,58 @@
-module valid_ready(
-    input clk, rst;
-    input valid_in, data_in, ready_out;
-    output ready_in, valid_out, data_out;
-);
-    reg mem=1'b0;
-    always @(posedge clk or posedge rst) begin
-        if(rst==1'b1) mem=1'b0;
-        else begin
-            if(valid_in == 1'b1 && ready_in == 1'b1) begin
-                mem<=data_in;
-                valid_out=1'b1;
-            end
-            if(valid_out==1'b1 && ready_out==1'b1) begin
-                data_out<=mem;
-                mem=1'b0;
-            end
+module valid_ready (
+    input  wire clk,
+    input  wire rst,
 
+    // Input (producer side)
+    input  wire valid_in,
+    input  wire data_in,
+    output wire ready_in,
+
+    // Output (consumer side)
+    output wire valid_out,
+    output wire data_out,
+    input  wire ready_out
+);
+
+    // --------------------------------------------------
+    // INTERNAL STATE
+    // --------------------------------------------------
+    // data_reg holds the actual data
+    // valid_reg tells whether data_reg currently holds valid data
+    reg data_reg;
+    reg valid_reg;
+
+    // --------------------------------------------------
+    // COMBINATIONAL LOGIC (handshake rules)
+    // --------------------------------------------------
+
+    // We can accept new data if:
+    // 1) We are empty, OR
+    // 2) The downstream is ready to accept our current data
+    assign ready_in = ~valid_reg || ready_out;
+
+    // Output signals reflect internal state
+    assign valid_out = valid_reg;
+    assign data_out  = data_reg;
+
+    // --------------------------------------------------
+    // SEQUENTIAL LOGIC (state updates)
+    // --------------------------------------------------
+    always @(posedge clk or posedge rst) begin
+        if (rst) begin
+            // Reset clears the pipeline stage
+            valid_reg <= 1'b0;
+        end else begin
+            // Case 1: Accept new data
+            if (valid_in && ready_in) begin
+                data_reg  <= data_in;
+                valid_reg <= 1'b1;
+            end
+            // Case 2: Data moves out but no new data comes in
+            else if (valid_reg && ready_out) begin
+                valid_reg <= 1'b0;
+            end
+            // Else: hold state
         end
     end
+
 endmodule
-    
