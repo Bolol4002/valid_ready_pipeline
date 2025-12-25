@@ -26,54 +26,49 @@ The DUT is in `src/valid_ready_single/valid_ready_single.sv`. Here is the full m
 ```verilog
 // Single-stage valid/ready pipeline
 // Parameterizable data width
-module valid_ready_pipeline #(
-  parameter int WIDTH = 8
+module valid_ready #(
+    parameter int WIDTH = 8
 ) (
-  input  logic                 clk,
-  input  logic                 rst_n,
-
-  // Input (producer) side
-  input  logic                 in_valid,
-  input  logic [WIDTH-1:0]     in_data,
-  output logic                 in_ready,
-
-  // Output (consumer) side
-  output logic                 out_valid,
-  output logic [WIDTH-1:0]     out_data,
-  input  logic                 out_ready
+    input  wire             clk,
+    input  wire             rst,
+    // Input (producer side)
+    input  wire             valid_in,
+    input  wire [WIDTH-1:0] data_in,
+    output logic            ready_in,
+    // Output (consumer side)
+    output logic            valid_out,
+    output logic [WIDTH-1:0] data_out,
+    input  wire             ready_out
 );
-
-  logic stage_valid;
-  logic [WIDTH-1:0] stage_data;
-
-  // When stage is empty we can accept input. If stage is full
-  // but the downstream is ready to accept the data this cycle,
-  // we can accept new input in the same cycle (bubble-through).
-  assign in_ready  = !stage_valid || (out_ready && stage_valid);
-  assign out_valid = stage_valid;
-  assign out_data  = stage_data;
-
-  always_ff @(posedge clk or negedge rst_n) begin
-    if (!rst_n) begin
-      stage_valid <= 1'b0;
-      stage_data  <= '0;
-    end else begin
-      // Capture input when valid and ready
-      if (in_valid && in_ready) begin
-        stage_data  <= in_data;
-        stage_valid <= 1'b1;
-      end
-
-      // If downstream accepts data, clear stage_valid
-      // (this makes room for the next input - possibly same cycle)
-      if (out_ready && stage_valid && !(in_valid && in_ready && stage_valid)) begin
-        // If stage was valid and we transfer to downstream, and
-        // we did not simultaneously capture new data above, clear
-        stage_valid <= 1'b0;
-      end
+    // data_reg holds the actual data
+    // valid_reg tells whether data_reg currently holds valid data
+    logic [WIDTH-1:0] data_reg;
+    logic             valid_reg;
+    // We can accept the data if we are empty or the next module is ready to accept 
+    // our current data (combinational)
+    assign ready_in = ~valid_reg || ready_out;
+    // Output signals reflect internal state
+    assign valid_out = valid_reg;
+    assign data_out  = data_reg;
+    always_ff @(posedge clk or posedge rst) begin
+        if (rst) begin
+            // Reset clears the pipeline stage
+            valid_reg <= 1'b0;
+            // data_reg <= 'x;   // optional: can be left unassigned (don't cares)
+        end else begin
+            // Case 1: Accept new data
+            if (valid_in && ready_in) begin
+                data_reg  <= data_in;
+                valid_reg <= 1'b1;
+            end
+            // Case 2: Data moves out but no new data comes in
+            else if (valid_reg && ready_out) begin
+                valid_reg <= 1'b0;
+                // data_reg can optionally be cleared, but not required
+            end
+            // Else: hold state
+        end
     end
-  end
-
 endmodule
 ```
 
@@ -90,138 +85,55 @@ How the cocotb testbench exercises the DUT
 The cocotb test file is `tb/test_valid_ready.py`. Here is the testbench (full file):
 
 ```python
-import random
 import cocotb
-from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, Timer
-
-
-async def reset_dut(dut):
-  dut.rst_n.value = 0
-  await Timer(100, units='ns')
-  dut.rst_n.value = 1
-  await RisingEdge(dut.clk)
+from cocotb.clock import Clock
 
 
 @cocotb.test()
-async def test_simple_flow(dut):
-  """Producer sends values while consumer is always ready."""
-  cocotb.start_soon(Clock(dut.clk, 10, units='ns').start())
-  await reset_dut(dut)
+async def valid_ready_test(dut):
 
-  dut.out_ready.value = 1
-  dut.in_valid.value = 0
+    # Start clock
+    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
 
-  data_seq = [1, 2, 3, 4, 255]
-  received = []
+    # Reset
+    dut.rst.value = 1
+    dut.valid_in.value = 0
+    dut.data_in.value = 0
+    dut.ready_out.value = 0
+    await RisingEdge(dut.clk)
 
-  async def send_values():
-    for v in data_seq:
-      # drive valid until accepted
-      dut.in_data.value = v
-      dut.in_valid.value = 1
-      while True:
+    dut.rst.value = 0
+    await RisingEdge(dut.clk)
+
+    # Test vectors
+    valid_in  = [0, 1, 1, 0, 1]
+    ready_out = [1, 1, 0, 1, 1]
+    data_in   = [10, 20, 30, 40, 50]
+
+    expected_valid = []
+    expected_data  = []
+
+    for i in range(len(valid_in)):
+        dut.valid_in.value = valid_in[i]
+        dut.data_in.value  = data_in[i]
+        dut.ready_out.value = ready_out[i]
+
         await RisingEdge(dut.clk)
-        if int(dut.in_ready.value) == 1 and int(dut.in_valid.value) == 1:
-          # accepted this cycle
-          dut.in_valid.value = 0
-          break
 
-  async def recv_values():
-    while len(received) < len(data_seq):
-      await RisingEdge(dut.clk)
-      if int(dut.out_valid.value) == 1 and int(dut.out_ready.value) == 1:
-        received.append(int(dut.out_data.value))
+        expected_valid.append(int(dut.valid_out.value))
+        expected_data.append(int(dut.data_out.value))
 
-  send_task = cocotb.start_soon(send_values())
-  recv_task = cocotb.start_soon(recv_values())
-  await send_task
-  await recv_task
+        print(f"Cycle {i}: "
+              f"valid_out={dut.valid_out.value}, "
+              f"data_out={dut.data_out.value}")
 
-  assert received == data_seq
-
-
-@cocotb.test()
-async def test_random_backpressure(dut):
-  """Randomly apply back-pressure and ensure ordering is preserved."""
-  cocotb.start_soon(Clock(dut.clk, 10, units='ns').start())
-  await reset_dut(dut)
-
-  dut.in_valid.value = 0
-  dut.out_ready.value = 0
-
-  data_seq = list(range(1, 21))
-  received = []
-
-  async def driver():
-    for v in data_seq:
-      dut.in_data.value = v
-      dut.in_valid.value = 1
-      # hold until accepted
-      while True:
-        await RisingEdge(dut.clk)
-        if int(dut.in_ready.value) == 1 and int(dut.in_valid.value) == 1:
-          dut.in_valid.value = 0
-          break
-
-  async def consumer():
-    while len(received) < len(data_seq):
-      # randomly toggle ready
-      dut.out_ready.value = random.choice([0, 1])
-      await RisingEdge(dut.clk)
-      if int(dut.out_valid.value) == 1 and int(dut.out_ready.value) == 1:
-        received.append(int(dut.out_data.value))
-
-  drv = cocotb.start_soon(driver())
-  cons = cocotb.start_soon(consumer())
-  await drv
-  await cons
-
-  assert received == data_seq
+    # Simple sanity checks
+    for i in range(len(expected_valid)):
+        if expected_valid[i]:
+            assert expected_data[i] != 0, f"Data invalid at cycle {i}"
 
 ```
 
-Testbench explanation (beginner friendly)
-- The testbench creates a clock with `Clock(dut.clk, 10, units='ns')` and applies reset via `reset_dut`.
-- `test_simple_flow` drives a sequence of values, holding `in_valid` until `in_ready` becomes true. The test sets `out_ready=1` so downstream never back-pressures; the test then checks the sequence received on `out_data`.
-- `test_random_backpressure` randomly toggles `out_ready` to simulate downstream stalling. The driver waits for `in_ready` before moving to the next value. The test ensures ordering is preserved.
 
-How the test maps to the DUT
-- When `in_valid` and `in_ready` are both true on a rising clock, the DUT captures `in_data` into `stage_data` and sets `stage_valid`.
-- When `out_ready` and `out_valid` are both true on a rising clock, the downstream accepts the stage's data; the DUT clears `stage_valid` unless a new value was captured in the same cycle.
 
-Run the tests (Verilator + venv)
-
-1) Create and activate Python venv and install dependencies (from project root):
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip setuptools wheel
-pip install -r requirements.txt
-```
-
-2) Ensure `verilator` is installed and available (we recommend a recent Verilator; check with):
-
-```bash
-verilator --version
-```
-
-3) Run the tests from the `tb` directory (venv activated):
-
-```bash
-cd tb
-make SIM=verilator
-```
-
-If `make` fails, capture the log and share it. Common fixes:
-- Ensure the venv is active so `cocotb-config` is found: `source .venv/bin/activate` from repo root before `cd tb`.
-- Verify `tb/Makefile` points at the correct RTL path: `VERILOG_SOURCES` should include `../src/valid_ready_single/valid_ready_single.sv` and `TOPLEVEL` should be `valid_ready_pipeline`.
-
-Learning tips
-- Step through the RTL with a waveform viewer (the Makefile enables tracing when supported). Use the VCD/FTZ/GLIF produced by Verilator to inspect `stage_valid`, `in_valid`, `in_ready`, `out_ready` and `stage_data`.
-- Modify the DUT to add `WIDTH` changes or a second stage to see how bubble-through and back-pressure interact.
-
-If you want, I can also:
-- Add a multi-stage example and tests, or
-- Add a GitHub Actions workflow to run the cocotb tests on each push.
