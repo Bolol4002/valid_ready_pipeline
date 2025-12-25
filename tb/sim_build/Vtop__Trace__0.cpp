@@ -23,23 +23,23 @@ void Vtop___024root__trace_chg_0_sub_0(Vtop___024root* vlSelf, VerilatedVcd::Buf
     // Body
     uint32_t* const oldp VL_ATTR_UNUSED = bufp->oldp(vlSymsp->__Vm_baseCode + 1);
     bufp->chgBit(oldp+0,(vlSelfRef.clk));
-    bufp->chgBit(oldp+1,(vlSelfRef.rst_n));
-    bufp->chgBit(oldp+2,(vlSelfRef.in_valid));
-    bufp->chgCData(oldp+3,(vlSelfRef.in_data),8);
-    bufp->chgBit(oldp+4,(vlSelfRef.in_ready));
-    bufp->chgBit(oldp+5,(vlSelfRef.out_valid));
-    bufp->chgCData(oldp+6,(vlSelfRef.out_data),8);
-    bufp->chgBit(oldp+7,(vlSelfRef.out_ready));
+    bufp->chgBit(oldp+1,(vlSelfRef.rst));
+    bufp->chgBit(oldp+2,(vlSelfRef.valid_in));
+    bufp->chgBit(oldp+3,(vlSelfRef.data_in));
+    bufp->chgBit(oldp+4,(vlSelfRef.ready_in));
+    bufp->chgBit(oldp+5,(vlSelfRef.valid_out));
+    bufp->chgBit(oldp+6,(vlSelfRef.data_out));
+    bufp->chgBit(oldp+7,(vlSelfRef.ready_out));
     bufp->chgBit(oldp+8,(vlSelfRef.valid_ready__DOT__clk));
-    bufp->chgBit(oldp+9,(vlSelfRef.valid_ready__DOT__rst_n));
-    bufp->chgBit(oldp+10,(vlSelfRef.valid_ready__DOT__in_valid));
-    bufp->chgCData(oldp+11,(vlSelfRef.valid_ready__DOT__in_data),8);
-    bufp->chgBit(oldp+12,(vlSelfRef.valid_ready__DOT__in_ready));
-    bufp->chgBit(oldp+13,(vlSelfRef.valid_ready__DOT__out_valid));
-    bufp->chgCData(oldp+14,(vlSelfRef.valid_ready__DOT__out_data),8);
-    bufp->chgBit(oldp+15,(vlSelfRef.valid_ready__DOT__out_ready));
-    bufp->chgBit(oldp+16,(vlSelfRef.valid_ready__DOT__stage_valid));
-    bufp->chgCData(oldp+17,(vlSelfRef.valid_ready__DOT__stage_data),8);
+    bufp->chgBit(oldp+9,(vlSelfRef.valid_ready__DOT__rst));
+    bufp->chgBit(oldp+10,(vlSelfRef.valid_ready__DOT__valid_in));
+    bufp->chgBit(oldp+11,(vlSelfRef.valid_ready__DOT__data_in));
+    bufp->chgBit(oldp+12,(vlSelfRef.valid_ready__DOT__ready_in));
+    bufp->chgBit(oldp+13,(vlSelfRef.valid_ready__DOT__valid_out));
+    bufp->chgBit(oldp+14,(vlSelfRef.valid_ready__DOT__data_out));
+    bufp->chgBit(oldp+15,(vlSelfRef.valid_ready__DOT__ready_out));
+    bufp->chgBit(oldp+16,(vlSelfRef.valid_ready__DOT__data_reg));
+    bufp->chgBit(oldp+17,(vlSelfRef.valid_ready__DOT__valid_reg));
 }
 
 void Vtop___024root__trace_cleanup(void* voidSelf, VerilatedVcd* /*unused*/) {

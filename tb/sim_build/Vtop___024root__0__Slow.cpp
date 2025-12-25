@@ -11,8 +11,8 @@ VL_ATTR_COLD void Vtop___024root___eval_static(Vtop___024root* vlSelf) {
     // Body
     vlSelfRef.__Vtrigprevexpr___TOP__valid_ready__DOT__clk__0 
         = vlSelfRef.valid_ready__DOT__clk;
-    vlSelfRef.__Vtrigprevexpr___TOP__valid_ready__DOT__rst_n__0 
-        = vlSelfRef.valid_ready__DOT__rst_n;
+    vlSelfRef.__Vtrigprevexpr___TOP__valid_ready__DOT__rst__0 
+        = vlSelfRef.valid_ready__DOT__rst;
 }
 
 VL_ATTR_COLD void Vtop___024root___eval_initial(Vtop___024root* vlSelf) {
@@ -46,7 +46,7 @@ VL_ATTR_COLD void Vtop___024root___eval_settle(Vtop___024root* vlSelf) {
 #ifdef VL_DEBUG
             Vtop___024root___dump_triggers__stl(vlSelfRef.__VstlTriggered, "stl"s);
 #endif
-            VL_FATAL_MT("/home/sayooj/projects/valid_ready_pipeline/tb/../src/valid_ready.sv", 3, "", "Settle region did not converge after 100 tries");
+            VL_FATAL_MT("/home/sayooj/projects/valid_ready_pipeline/tb/../src/valid_ready.sv", 1, "", "Settle region did not converge after 100 tries");
         }
         __VstlIterCount = ((IData)(1U) + __VstlIterCount);
     } while (Vtop___024root___eval_phase__stl(vlSelf));
@@ -153,7 +153,7 @@ VL_ATTR_COLD void Vtop___024root___dump_triggers__act(const VlUnpacked<QData/*63
         VL_DBG_MSGS("         '" + tag + "' region trigger index 0 is active: @(posedge valid_ready.clk)\n");
     }
     if ((1U & (IData)((triggers[0U] >> 1U)))) {
-        VL_DBG_MSGS("         '" + tag + "' region trigger index 1 is active: @(negedge valid_ready.rst_n)\n");
+        VL_DBG_MSGS("         '" + tag + "' region trigger index 1 is active: @(posedge valid_ready.rst)\n");
     }
 }
 #endif  // VL_DEBUG
@@ -165,23 +165,23 @@ VL_ATTR_COLD void Vtop___024root___ctor_var_reset(Vtop___024root* vlSelf) {
     // Body
     const uint64_t __VscopeHash = VL_MURMUR64_HASH(vlSelf->vlNamep);
     vlSelf->clk = VL_SCOPED_RAND_RESET_I(1, __VscopeHash, 16707436170211756652ull);
-    vlSelf->rst_n = VL_SCOPED_RAND_RESET_I(1, __VscopeHash, 1638864771569018232ull);
-    vlSelf->in_valid = VL_SCOPED_RAND_RESET_I(1, __VscopeHash, 2339549897027650563ull);
-    vlSelf->in_data = VL_SCOPED_RAND_RESET_I(8, __VscopeHash, 4057622023130387117ull);
-    vlSelf->in_ready = VL_SCOPED_RAND_RESET_I(1, __VscopeHash, 1122049356863891575ull);
-    vlSelf->out_valid = VL_SCOPED_RAND_RESET_I(1, __VscopeHash, 2886291494070200219ull);
-    vlSelf->out_data = VL_SCOPED_RAND_RESET_I(8, __VscopeHash, 10144880484820144978ull);
-    vlSelf->out_ready = VL_SCOPED_RAND_RESET_I(1, __VscopeHash, 17332470166291283643ull);
+    vlSelf->rst = VL_SCOPED_RAND_RESET_I(1, __VscopeHash, 18209466448985614591ull);
+    vlSelf->valid_in = VL_SCOPED_RAND_RESET_I(1, __VscopeHash, 16540271516330450727ull);
+    vlSelf->data_in = VL_SCOPED_RAND_RESET_I(1, __VscopeHash, 10574596302020702150ull);
+    vlSelf->ready_in = VL_SCOPED_RAND_RESET_I(1, __VscopeHash, 5285755476734430966ull);
+    vlSelf->valid_out = VL_SCOPED_RAND_RESET_I(1, __VscopeHash, 8744939437868816662ull);
+    vlSelf->data_out = VL_SCOPED_RAND_RESET_I(1, __VscopeHash, 11675680895196038875ull);
+    vlSelf->ready_out = VL_SCOPED_RAND_RESET_I(1, __VscopeHash, 7479542285155168376ull);
     vlSelf->valid_ready__DOT__clk = VL_SCOPED_RAND_RESET_I(1, __VscopeHash, 11191639141208486887ull);
-    vlSelf->valid_ready__DOT__rst_n = VL_SCOPED_RAND_RESET_I(1, __VscopeHash, 3605572006639426642ull);
-    vlSelf->valid_ready__DOT__in_valid = VL_SCOPED_RAND_RESET_I(1, __VscopeHash, 166541064907506325ull);
-    vlSelf->valid_ready__DOT__in_data = VL_SCOPED_RAND_RESET_I(8, __VscopeHash, 2402458319063712776ull);
-    vlSelf->valid_ready__DOT__in_ready = VL_SCOPED_RAND_RESET_I(1, __VscopeHash, 11887442761375243453ull);
-    vlSelf->valid_ready__DOT__out_valid = VL_SCOPED_RAND_RESET_I(1, __VscopeHash, 17894196534986695258ull);
-    vlSelf->valid_ready__DOT__out_data = VL_SCOPED_RAND_RESET_I(8, __VscopeHash, 7037515047886811972ull);
-    vlSelf->valid_ready__DOT__out_ready = VL_SCOPED_RAND_RESET_I(1, __VscopeHash, 9669140623120441983ull);
-    vlSelf->valid_ready__DOT__stage_valid = VL_SCOPED_RAND_RESET_I(1, __VscopeHash, 7635713935189983957ull);
-    vlSelf->valid_ready__DOT__stage_data = VL_SCOPED_RAND_RESET_I(8, __VscopeHash, 12464808086709630119ull);
+    vlSelf->valid_ready__DOT__rst = VL_SCOPED_RAND_RESET_I(1, __VscopeHash, 421785568746653836ull);
+    vlSelf->valid_ready__DOT__valid_in = VL_SCOPED_RAND_RESET_I(1, __VscopeHash, 17577054668841030119ull);
+    vlSelf->valid_ready__DOT__data_in = VL_SCOPED_RAND_RESET_I(1, __VscopeHash, 15329003099637984073ull);
+    vlSelf->valid_ready__DOT__ready_in = VL_SCOPED_RAND_RESET_I(1, __VscopeHash, 15662466333880577865ull);
+    vlSelf->valid_ready__DOT__valid_out = VL_SCOPED_RAND_RESET_I(1, __VscopeHash, 10646423271403471529ull);
+    vlSelf->valid_ready__DOT__data_out = VL_SCOPED_RAND_RESET_I(1, __VscopeHash, 9463187299453440734ull);
+    vlSelf->valid_ready__DOT__ready_out = VL_SCOPED_RAND_RESET_I(1, __VscopeHash, 18038793831838196900ull);
+    vlSelf->valid_ready__DOT__data_reg = VL_SCOPED_RAND_RESET_I(1, __VscopeHash, 16452563674933482474ull);
+    vlSelf->valid_ready__DOT__valid_reg = VL_SCOPED_RAND_RESET_I(1, __VscopeHash, 7949517956106618269ull);
     for (int __Vi0 = 0; __Vi0 < 1; ++__Vi0) {
         vlSelf->__VstlTriggered[__Vi0] = 0;
     }
@@ -192,7 +192,7 @@ VL_ATTR_COLD void Vtop___024root___ctor_var_reset(Vtop___024root* vlSelf) {
         vlSelf->__VactTriggered[__Vi0] = 0;
     }
     vlSelf->__Vtrigprevexpr___TOP__valid_ready__DOT__clk__0 = 0;
-    vlSelf->__Vtrigprevexpr___TOP__valid_ready__DOT__rst_n__0 = 0;
+    vlSelf->__Vtrigprevexpr___TOP__valid_ready__DOT__rst__0 = 0;
     for (int __Vi0 = 0; __Vi0 < 1; ++__Vi0) {
         vlSelf->__VnbaTriggered[__Vi0] = 0;
     }

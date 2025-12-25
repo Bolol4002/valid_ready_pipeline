@@ -28,24 +28,23 @@ Vtop__Syms::Vtop__Syms(VerilatedContext* contextp, const char* namep, Vtop* mode
     // Setup export functions - final: 1
     // Setup public variables
     __Vscopep_TOP->varInsert("clk", &(TOP.clk), false, VLVT_UINT8, VLVD_IN|VLVF_PUB_RW, 0, 0);
-    __Vscopep_TOP->varInsert("in_data", &(TOP.in_data), false, VLVT_UINT8, VLVD_IN|VLVF_PUB_RW, 0, 1 ,7,0);
-    __Vscopep_TOP->varInsert("in_ready", &(TOP.in_ready), false, VLVT_UINT8, VLVD_OUT|VLVF_PUB_RW, 0, 0);
-    __Vscopep_TOP->varInsert("in_valid", &(TOP.in_valid), false, VLVT_UINT8, VLVD_IN|VLVF_PUB_RW, 0, 0);
-    __Vscopep_TOP->varInsert("out_data", &(TOP.out_data), false, VLVT_UINT8, VLVD_OUT|VLVF_PUB_RW, 0, 1 ,7,0);
-    __Vscopep_TOP->varInsert("out_ready", &(TOP.out_ready), false, VLVT_UINT8, VLVD_IN|VLVF_PUB_RW, 0, 0);
-    __Vscopep_TOP->varInsert("out_valid", &(TOP.out_valid), false, VLVT_UINT8, VLVD_OUT|VLVF_PUB_RW, 0, 0);
-    __Vscopep_TOP->varInsert("rst_n", &(TOP.rst_n), false, VLVT_UINT8, VLVD_IN|VLVF_PUB_RW, 0, 0);
-    __Vscopep_valid_ready->varInsert("WIDTH", const_cast<void*>(static_cast<const void*>(&(TOP.valid_ready__DOT__WIDTH))), true, VLVT_UINT32, VLVD_NODIR|VLVF_PUB_RW|VLVF_DPI_CLAY, 0, 1 ,31,0);
+    __Vscopep_TOP->varInsert("data_in", &(TOP.data_in), false, VLVT_UINT8, VLVD_IN|VLVF_PUB_RW, 0, 0);
+    __Vscopep_TOP->varInsert("data_out", &(TOP.data_out), false, VLVT_UINT8, VLVD_OUT|VLVF_PUB_RW, 0, 0);
+    __Vscopep_TOP->varInsert("ready_in", &(TOP.ready_in), false, VLVT_UINT8, VLVD_OUT|VLVF_PUB_RW, 0, 0);
+    __Vscopep_TOP->varInsert("ready_out", &(TOP.ready_out), false, VLVT_UINT8, VLVD_IN|VLVF_PUB_RW, 0, 0);
+    __Vscopep_TOP->varInsert("rst", &(TOP.rst), false, VLVT_UINT8, VLVD_IN|VLVF_PUB_RW, 0, 0);
+    __Vscopep_TOP->varInsert("valid_in", &(TOP.valid_in), false, VLVT_UINT8, VLVD_IN|VLVF_PUB_RW, 0, 0);
+    __Vscopep_TOP->varInsert("valid_out", &(TOP.valid_out), false, VLVT_UINT8, VLVD_OUT|VLVF_PUB_RW, 0, 0);
     __Vscopep_valid_ready->varInsert("clk", &(TOP.valid_ready__DOT__clk), false, VLVT_UINT8, VLVD_NODIR|VLVF_PUB_RW, 0, 0);
-    __Vscopep_valid_ready->varInsert("in_data", &(TOP.valid_ready__DOT__in_data), false, VLVT_UINT8, VLVD_NODIR|VLVF_PUB_RW, 0, 1 ,7,0);
-    __Vscopep_valid_ready->varInsert("in_ready", &(TOP.valid_ready__DOT__in_ready), false, VLVT_UINT8, VLVD_NODIR|VLVF_PUB_RW, 0, 0);
-    __Vscopep_valid_ready->varInsert("in_valid", &(TOP.valid_ready__DOT__in_valid), false, VLVT_UINT8, VLVD_NODIR|VLVF_PUB_RW, 0, 0);
-    __Vscopep_valid_ready->varInsert("out_data", &(TOP.valid_ready__DOT__out_data), false, VLVT_UINT8, VLVD_NODIR|VLVF_PUB_RW, 0, 1 ,7,0);
-    __Vscopep_valid_ready->varInsert("out_ready", &(TOP.valid_ready__DOT__out_ready), false, VLVT_UINT8, VLVD_NODIR|VLVF_PUB_RW, 0, 0);
-    __Vscopep_valid_ready->varInsert("out_valid", &(TOP.valid_ready__DOT__out_valid), false, VLVT_UINT8, VLVD_NODIR|VLVF_PUB_RW, 0, 0);
-    __Vscopep_valid_ready->varInsert("rst_n", &(TOP.valid_ready__DOT__rst_n), false, VLVT_UINT8, VLVD_NODIR|VLVF_PUB_RW, 0, 0);
-    __Vscopep_valid_ready->varInsert("stage_data", &(TOP.valid_ready__DOT__stage_data), false, VLVT_UINT8, VLVD_NODIR|VLVF_PUB_RW, 0, 1 ,7,0);
-    __Vscopep_valid_ready->varInsert("stage_valid", &(TOP.valid_ready__DOT__stage_valid), false, VLVT_UINT8, VLVD_NODIR|VLVF_PUB_RW, 0, 0);
+    __Vscopep_valid_ready->varInsert("data_in", &(TOP.valid_ready__DOT__data_in), false, VLVT_UINT8, VLVD_NODIR|VLVF_PUB_RW, 0, 0);
+    __Vscopep_valid_ready->varInsert("data_out", &(TOP.valid_ready__DOT__data_out), false, VLVT_UINT8, VLVD_NODIR|VLVF_PUB_RW, 0, 0);
+    __Vscopep_valid_ready->varInsert("data_reg", &(TOP.valid_ready__DOT__data_reg), false, VLVT_UINT8, VLVD_NODIR|VLVF_PUB_RW, 0, 0);
+    __Vscopep_valid_ready->varInsert("ready_in", &(TOP.valid_ready__DOT__ready_in), false, VLVT_UINT8, VLVD_NODIR|VLVF_PUB_RW, 0, 0);
+    __Vscopep_valid_ready->varInsert("ready_out", &(TOP.valid_ready__DOT__ready_out), false, VLVT_UINT8, VLVD_NODIR|VLVF_PUB_RW, 0, 0);
+    __Vscopep_valid_ready->varInsert("rst", &(TOP.valid_ready__DOT__rst), false, VLVT_UINT8, VLVD_NODIR|VLVF_PUB_RW, 0, 0);
+    __Vscopep_valid_ready->varInsert("valid_in", &(TOP.valid_ready__DOT__valid_in), false, VLVT_UINT8, VLVD_NODIR|VLVF_PUB_RW, 0, 0);
+    __Vscopep_valid_ready->varInsert("valid_out", &(TOP.valid_ready__DOT__valid_out), false, VLVT_UINT8, VLVD_NODIR|VLVF_PUB_RW, 0, 0);
+    __Vscopep_valid_ready->varInsert("valid_reg", &(TOP.valid_ready__DOT__valid_reg), false, VLVT_UINT8, VLVD_NODIR|VLVF_PUB_RW, 0, 0);
 }
 
 Vtop__Syms::~Vtop__Syms() {

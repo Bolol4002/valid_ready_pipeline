@@ -15,27 +15,27 @@ class alignas(VL_CACHE_LINE_BYTES) Vtop___024root final {
 
     // DESIGN SPECIFIC STATE
     VL_IN8(clk,0,0);
-    VL_IN8(rst_n,0,0);
-    VL_IN8(in_valid,0,0);
-    VL_IN8(in_data,7,0);
-    VL_OUT8(in_ready,0,0);
-    VL_OUT8(out_valid,0,0);
-    VL_OUT8(out_data,7,0);
-    VL_IN8(out_ready,0,0);
+    VL_IN8(rst,0,0);
+    VL_IN8(valid_in,0,0);
+    VL_IN8(data_in,0,0);
+    VL_OUT8(ready_in,0,0);
+    VL_OUT8(valid_out,0,0);
+    VL_OUT8(data_out,0,0);
+    VL_IN8(ready_out,0,0);
     CData/*0:0*/ valid_ready__DOT__clk;
-    CData/*0:0*/ valid_ready__DOT__rst_n;
-    CData/*0:0*/ valid_ready__DOT__in_valid;
-    CData/*7:0*/ valid_ready__DOT__in_data;
-    CData/*0:0*/ valid_ready__DOT__in_ready;
-    CData/*0:0*/ valid_ready__DOT__out_valid;
-    CData/*7:0*/ valid_ready__DOT__out_data;
-    CData/*0:0*/ valid_ready__DOT__out_ready;
-    CData/*0:0*/ valid_ready__DOT__stage_valid;
-    CData/*7:0*/ valid_ready__DOT__stage_data;
+    CData/*0:0*/ valid_ready__DOT__rst;
+    CData/*0:0*/ valid_ready__DOT__valid_in;
+    CData/*0:0*/ valid_ready__DOT__data_in;
+    CData/*0:0*/ valid_ready__DOT__ready_in;
+    CData/*0:0*/ valid_ready__DOT__valid_out;
+    CData/*0:0*/ valid_ready__DOT__data_out;
+    CData/*0:0*/ valid_ready__DOT__ready_out;
+    CData/*0:0*/ valid_ready__DOT__data_reg;
+    CData/*0:0*/ valid_ready__DOT__valid_reg;
     CData/*0:0*/ __VstlFirstIteration;
     CData/*0:0*/ __VicoFirstIteration;
     CData/*0:0*/ __Vtrigprevexpr___TOP__valid_ready__DOT__clk__0;
-    CData/*0:0*/ __Vtrigprevexpr___TOP__valid_ready__DOT__rst_n__0;
+    CData/*0:0*/ __Vtrigprevexpr___TOP__valid_ready__DOT__rst__0;
     IData/*31:0*/ __VactIterCount;
     VlUnpacked<QData/*63:0*/, 1> __VstlTriggered;
     VlUnpacked<QData/*63:0*/, 1> __VicoTriggered;
@@ -45,9 +45,6 @@ class alignas(VL_CACHE_LINE_BYTES) Vtop___024root final {
     // INTERNAL VARIABLES
     Vtop__Syms* vlSymsp;
     const char* vlNamep;
-
-    // PARAMETERS
-    static constexpr IData/*31:0*/ valid_ready__DOT__WIDTH = 8U;
 
     // CONSTRUCTORS
     Vtop___024root(Vtop__Syms* symsp, const char* namep);
